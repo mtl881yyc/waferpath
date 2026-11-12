@@ -1,6 +1,7 @@
 """Build the bilingual website as static HTML and assets."""
 from pathlib import Path
 from html import escape as e
+from hashlib import sha256
 from shutil import copytree, copy2, rmtree
 import os
 from urllib.parse import urlsplit
@@ -9,6 +10,8 @@ from employers import employers
 from content import pages, DOJ
 root=Path(__file__).resolve().parent.parent
 src=root/'src'
+stylesheet = (src / 'style.css').read_text()
+style_version = sha256(stylesheet.encode()).hexdigest()[:12]
 base = os.environ.get('SITE_URL') or json.loads((root/'site.json').read_text())['origin']
 base = base.rstrip('/')
 parsed = urlsplit(base)
@@ -52,7 +55,7 @@ def make(lang,slug,title,desc,main):
     brand=f'<a class="brand" href="{home}" aria-label="Waferpath {t("首页","home")}"><i class="mark" aria-hidden="true"></i>Waferpath</a>'
     alt=''.join(f'<link rel="alternate" hreflang="{c}" href="{base}{path(l,slug)}">' for c,l in [('zh-Hans','zh'),('en','en'),('x-default','en')])
     ld={'@context':'https://schema.org','@type':'Article' if slug in [p[0] for p in pages[lang]] else 'WebPage','name':title,'description':desc,'url':base+url,'inLanguage':t('zh-Hans','en'),'publisher':{'@type':'Organization','name':'Waferpath','url':base+'/'},'isPartOf':{'@type':'WebSite','name':'Waferpath','url':base+'/'}}
-    asset(url, f'''<!doctype html><html lang="{t('zh-CN','en')}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(title)} | Waferpath</title><meta name="description" content="{e(desc,quote=True)}"><link rel="canonical" href="{base}{url}">{alt}<meta property="og:type" content="website"><meta property="og:title" content="{e(title,quote=True)}"><meta property="og:description" content="{e(desc,quote=True)}"><meta property="og:url" content="{base}{url}"><meta property="og:image" content="{base}/wafer-macro.webp"><link rel="stylesheet" href="/style.css"><link rel="icon" href="/icon.png"><script type="application/ld+json">{json.dumps(ld,ensure_ascii=False)}</script></head><body><a class="skip" href="#content">{t('跳到正文','Skip to content')}</a><header class="top"><div class="wrap">{brand}<nav class="nav"><a href="{path(lang,'companies')}">{t('公司资料','Companies')}</a><a href="{home}#guides">{t('求职指南','Guides')}</a><a href="{home}#questions">{t('常见问题','FAQ')}</a></nav><a class="lang" lang="{other}" href="{path(other,slug)}">{t('English','中文')}</a>{button(contact_link,t('微信咨询','WeChat'))}</div></header><main class="wrap" id="content">{main}</main><footer class="foot"><div class="wrap">{brand}<span>{t('半导体求职与出口许可','Semiconductor careers & export licensing')}</span><a href="{path(lang,'contact')}">{t('联系咨询','Contact')}</a></div></footer></body></html>''','text/html; charset=utf-8')
+    asset(url, f'''<!doctype html><html lang="{t('zh-CN','en')}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(title)} | Waferpath</title><meta name="description" content="{e(desc,quote=True)}"><link rel="canonical" href="{base}{url}">{alt}<meta property="og:type" content="website"><meta property="og:title" content="{e(title,quote=True)}"><meta property="og:description" content="{e(desc,quote=True)}"><meta property="og:url" content="{base}{url}"><meta property="og:image" content="{base}/wafer-macro.webp"><link rel="stylesheet" href="/style.css?v={style_version}"><link rel="icon" href="/icon.png"><script type="application/ld+json">{json.dumps(ld,ensure_ascii=False)}</script></head><body><a class="skip" href="#content">{t('跳到正文','Skip to content')}</a><header class="top"><div class="wrap">{brand}<nav class="nav"><a href="{path(lang,'companies')}">{t('公司资料','Companies')}</a><a href="{home}#guides">{t('求职指南','Guides')}</a><a href="{home}#questions">{t('常见问题','FAQ')}</a></nav><a class="lang" lang="{other}" href="{path(other,slug)}">{t('English','中文')}</a>{button(contact_link,t('微信咨询','WeChat'))}</div></header><main class="wrap" id="content">{main}</main><footer class="foot"><div class="wrap">{brand}<span>{t('半导体求职与出口许可','Semiconductor careers & export licensing')}</span><a href="{path(lang,'contact')}">{t('联系咨询','Contact')}</a></div></footer></body></html>''','text/html; charset=utf-8')
 for lang,data in pages.items():
     zh=lang=='zh';t=lambda a,b:a if zh else b
     h=path(lang); contact=path(lang,'contact')
@@ -108,7 +111,7 @@ for lang,data in pages.items():
 urls=[u for u,v in routes.items() if v[0].startswith('text/html')]
 asset('/robots.txt','User-agent: *\nAllow: /\nSitemap: '+base+'/sitemap.xml\n','text/plain')
 asset('/sitemap.xml','<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>'+e(base+p)+'</loc></url>' for p in urls)+'</urlset>','application/xml')
-asset('/style.css',(src/'style.css').read_text(),'text/css')
+asset('/style.css',stylesheet,'text/css')
 destination = root / 'dist' / 'client'
 # Rebuild the generated directory so retired pages are removed from deployments.
 if destination.exists():
