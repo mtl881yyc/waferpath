@@ -19,3 +19,33 @@ pages={
 ('Ask about responsibilities','“Which responsibilities or technologies in this role may require an export license?” Keep the conversation at the level of the public job description.'),
 ('Ask about documentation','“Which documents do you need from me, and how should I send them?” Ask for a list of outstanding items and the preferred way to submit them.'),
 ('Ask about timing','“Has the company submitted an export license application for this role yet? When should we check in again about my start date?” Keep a copy of the answer and the agreed follow-up date.')],[(BIS,'BIS · Deemed export application requirements'),(DOJ,'U.S. Department of Justice · Export compliance assessments')])]}
+
+LICENSING = 'https://www.bis.gov/licensing'
+pages['zh'].extend([
+    ('application-status', '美国出口许可提交后，怎样查 BIS 申请进度？',
+     '弄清是谁提交了申请、哪一天提交，以及雇主能从 SNAP-R 或 STELA 查到什么。', [
+        ('先确认是否已经提交', '如果 HR 只说“在办 EL”，先问负责申请的团队是否已向美国商务部工业与安全局（BIS）提交，以及提交日期。公司内部收齐材料的日期和向 BIS 提交的日期可能不同。'),
+        ('由提交方核对官方记录', '在 BIS 的许可页面，Apply for a license 指向提交申请的 SNAP-R，Track an application 提供 STELA 状态查询入口。若申请是雇主提交的，请其合规团队核对记录，再告诉你最近一次更新的日期和是否需要你补材料。'),
+        ('把申请进度和报到日期分别记下来', '可以这样记录招聘方的回复：“申请已于［日期］提交；目前需补交［材料或无］；公司将在［日期］再次确认能否按时报到。”最终开工日期向招聘方书面确认。')
+     ], [(LICENSING, 'BIS · 提交申请与查询状态的官方入口')]),
+    ('application-documents', '芯片工程师申请美国出口许可，要准备哪些材料？',
+     '按 BIS 的视同出口申请指南整理证件、履历和研究经历，并与雇主确认提交方式。', [
+        ('先核对证件和提交渠道', 'BIS 指南列出清晰有效的护照、签证和工作授权文件。先请公司合规团队列出适用于你的材料和上传入口。按对方要求分别准备文件，核对有效期。'),
+        ('整理教育、工作和研究履历', '按时间列出学校、就读日期、学位、历任雇主和工作职责，说明经历中的空档。做过研究或发表过文章的，可以另列项目简介、文章题目、发表日期及刊物，供雇主核对。'),
+        ('向公司确认岗位说明由谁准备', 'BIS 指南还列有解释信（Letter of Explanation）。向合规团队确认由谁说明岗位涉及的技术和接触范围。你可以先准备岗位名称、公开的职位描述及履历；证件通过公司指定渠道提交。')
+     ], [(BIS, 'BIS · 涉及外国人员的许可申请指南，第 II、IV、V 节')]),
+])
+pages['en'].extend([
+    ('application-status', 'How to check the status of a U.S. export license application',
+     'Find out who filed the application, when it was submitted and how the employer can check for updates through BIS.', [
+        ('Confirm the filing date', 'If recruiting says your license is in progress, ask whether the filing team has submitted it to the Bureau of Industry and Security (BIS) and on what date. The team may have finished collecting your documents before it filed.'),
+        ('Ask the filing team to check the official record', 'The BIS licensing page links to SNAP-R under Apply for a license and to STELA under Track an application. If your employer filed the application, ask its compliance team to check the record and tell you when the status last changed and whether it needs anything from you.'),
+        ('Record the next hiring decision separately', 'A useful update reads, “Filed on [date]. Outstanding documents: [items or none]. Recruiting will revisit the start date on [date].” Ask recruiting to confirm the eventual start date in writing.')
+     ], [(LICENSING, 'BIS · Official application and status tools')]),
+    ('application-documents', 'Documents for a semiconductor deemed export license application',
+     'Use BIS guidance to prepare identity documents and an accurate work and research history, then confirm how your employer wants to receive them.', [
+        ('Check the documents and the submission channel', 'BIS guidance lists legible, valid copies of the passport, visa and work authorization. Ask the compliance team which documents apply to your circumstances and where to upload them. Check expiration dates and prepare separate files as requested.'),
+        ('Build a timeline of education, work and research', 'List schools, attendance dates, degrees, employers and duties in chronological order. Explain gaps. For research and publications, collect short project descriptions, article titles, publication dates and journal names so the employer can check the details.'),
+        ('Agree on who will describe the role', 'The BIS guidance also calls for a Letter of Explanation. Ask compliance who will describe the technology involved and the access the role requires. Have your job title, public job description and résumé ready, and use the company’s designated channel for identity documents.')
+     ], [(BIS, 'BIS · Foreign-person application guidance, sections II, IV and V')]),
+])

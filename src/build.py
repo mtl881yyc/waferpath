@@ -1,5 +1,6 @@
-"""Build the bilingual website as static HTML and assets."""
+"""Build the multilingual website as static HTML and assets."""
 from pathlib import Path
+from functools import partial
 from html import escape as e
 from hashlib import sha256
 from shutil import copytree, copy2, rmtree
@@ -10,6 +11,25 @@ from employers import employers
 from content import pages, DOJ
 root=Path(__file__).resolve().parent.parent
 src=root/'src'
+languages = {'zh': ('zh-Hans', '中文'), 'en': ('en', 'English'), 'ru': ('ru', 'Русский'), 'fa': ('fa', 'فارسی')}
+translations = {lang: json.loads((src / 'locales' / f'{lang}.json').read_text())
+                for lang in ('ru', 'fa')}
+
+def translate(lang, chinese, english):
+    if lang == 'zh':
+        return chinese
+    if lang == 'en':
+        return english
+    return translations[lang][english]
+
+def guides_for(lang):
+    if lang in pages:
+        return pages[lang]
+    words = translations[lang]
+    return [(slug, words[title], words[desc], [(words[k], words[v]) for k, v in sections],
+             [(url, words[label]) for url, label in refs])
+            for slug, title, desc, sections, refs in pages['en']]
+
 stylesheet = (src / 'style.css').read_text()
 style_version = sha256(stylesheet.encode()).hexdigest()[:12]
 settings = json.loads((root/'site.json').read_text())
@@ -22,7 +42,7 @@ prefix = parsed.path
 canonical_base = settings.get('canonical_origin', base).rstrip('/')
 routes={}
 def path(lang,slug=''):
-    return ('/' if lang=='zh' else '/en/')+(slug+'/' if slug else '')
+    return ('/' if lang=='zh' else f'/{lang}/')+(slug+'/' if slug else '')
 def asset(url,body,mime):
     if prefix and mime.startswith('text/html'):
         body = body.replace('href="/', f'href="{prefix}/').replace('src="/', f'src="{prefix}/')
@@ -33,46 +53,39 @@ def link(url,label):
     return f'<a href="{e(url,quote=True)}">{e(label)}</a>'
 
 def guide_example(lang, slug):
-    zh = lang == 'zh'
+    t = partial(translate, lang)
     if slug == 'recruiter-questions':
-        heading = '英文进度跟进邮件模板' if zh else 'Email template for an export license status update'
-        note = ('把方括号换成岗位名称和 offer 上的日期。如果招聘方已经确认提交，可删去询问是否提交的那句。'
-                if zh else 'Replace the bracketed details with your role and proposed start date. If recruiting has confirmed filing, omit the question about submission.')
+        heading = t('英文进度跟进邮件模板', 'Email template for an export license status update')
+        note = t('把方括号换成岗位名称和 offer 上的日期。如果招聘方已经确认提交，可删去询问是否提交的那句。',
+                 'Replace the bracketed details with your role and proposed start date. If recruiting has confirmed filing, omit the question about submission.')
         return f'''<section class="guide-example"><h2>{heading}</h2><p>{note}</p>
-            <blockquote lang="en"><p><strong>Subject: Export license status and start date for [role]</strong></p>
+            <blockquote lang="en" dir="ltr"><p><strong>Subject: Export license status and start date for [role]</strong></p>
             <p>Hi [name],</p><p>I’m looking forward to joining the team as [role]. My offer lists [date] as the proposed start date. Has the export compliance team submitted the license application for this role?</p>
             <p>If you need any documents from me, please let me know how to send them. If the application is still pending on [date], could we agree on when to revisit the start date?</p>
             <p>Thank you,<br>[your name]</p></blockquote></section>'''
     if slug == 'offer-review':
         amd = next(item[-1] for item in employers if item[0] == 'amd')
         qualcomm = next(item[-1] for item in employers if item[0] == 'qualcomm')
-        if zh:
-            heading = '怎么读 AMD 的 offer 和 Qualcomm 的实习通知？'
-            examples = [
-                ('AMD 的一份公开 offer 把取得所需许可列为录用条件，并提醒收件人等出口管制流程完成后再辞职。看到类似条款时，可以让招聘方书面确认这项条件何时满足。', amd, 'AMD 公开 offer'),
-                ('Qualcomm 的一则实习招聘通知提醒，需要许可的候选人可能赶不上实习。实习期固定时，可以先问项目最晚接受哪一天报到，再约定在这一天之前何时联系。', qualcomm, 'Qualcomm 实习招聘通知'),
-            ]
-        else:
-            heading = 'Reading an AMD offer and a Qualcomm internship notice'
-            examples = [
-                ('One published AMD offer asks its recipient to wait until the export control process is complete before resigning. If your own offer has a similar condition, ask who will confirm in writing when it has been met.', amd, 'Published AMD offer'),
-                ('A Qualcomm internship notice explains that candidates who need a license could miss the internship if it is delayed. For a fixed program, ask for the last possible start date and agree on a check-in before that date.', qualcomm, 'Qualcomm internship notice'),
-            ]
+        heading = t('怎么读 AMD 的 offer 和 Qualcomm 的实习通知？',
+                    'Reading an AMD offer and a Qualcomm internship notice')
+        examples = [
+            (t('AMD 的一份公开 offer 把取得所需许可列为录用条件，并提醒收件人等出口管制流程完成后再辞职。看到类似条款时，可以让招聘方书面确认这项条件何时满足。',
+               'One published AMD offer asks its recipient to wait until the export control process is complete before resigning. If your own offer has a similar condition, ask who will confirm in writing when it has been met.'),
+             amd, t('AMD 公开 offer', 'Published AMD offer')),
+            (t('Qualcomm 的一则实习招聘通知提醒，需要许可的候选人可能赶不上实习。实习期固定时，可以先问项目最晚接受哪一天报到，再约定在这一天之前何时联系。',
+               'A Qualcomm internship notice explains that candidates who need a license could miss the internship if it is delayed. For a fixed program, ask for the last possible start date and agree on a check-in before that date.'),
+             qualcomm, t('Qualcomm 实习招聘通知', 'Qualcomm internship notice')),
+        ]
         return f'<section class="guide-example"><h2>{heading}</h2>' + ''.join(
             f'<p>{e(body)} {link(url, label)}</p>' for body, url, label in examples
         ) + '</section>'
     return ''
 def wechat_panel(lang):
-    if lang == 'zh':
-        title = '扫码加微信咨询'
-        instructions = '在手机上可先保存二维码，再用微信「扫一扫」从相册识别。'
-        download = '保存二维码'
-        alt = '美国 Export License 咨询微信二维码'
-    else:
-        title = 'Scan to connect on WeChat'
-        instructions = 'On your phone, save the code, then select it from your photos in WeChat Scan.'
-        download = 'Save QR code'
-        alt = 'WeChat QR code for U.S. export license questions'
+    t = partial(translate, lang)
+    title = t('扫码加微信咨询', 'Scan to connect on WeChat')
+    instructions = t('在手机上可先保存二维码，再用微信「扫一扫」从相册识别。', 'On your phone, save the code, then select it from your photos in WeChat Scan.')
+    download = t('保存二维码', 'Save QR code')
+    alt = t('美国 Export License 咨询微信二维码', 'WeChat QR code for U.S. export license questions')
     return f'''<section class="wechat-panel" id="wechat-consult" aria-labelledby="wechat-title">
         <h2 id="wechat-title">{e(title)}</h2>
         <img class="wechat-qr" src="/wechat-qr.png" width="516" height="516" fetchpriority="high" alt="{e(alt)}">
@@ -81,26 +94,70 @@ def wechat_panel(lang):
         </section>'''
 
 def make(lang,slug,title,desc,main):
-    zh=lang=='zh'
-    t=lambda a,b:a if zh else b
-    home=path(lang); other='en' if zh else 'zh'; url=path(lang,slug)
+    t = partial(translate, lang)
+    home=path(lang); url=path(lang,slug)
+    tag, native_name = languages[lang]
+    direction = 'rtl' if lang == 'fa' else 'ltr'
+    language_links = ''.join(
+        f'<a href="{path(code, slug)}" lang="{other_tag}" hreflang="{other_tag}" dir="auto">{name}</a>'
+        for code, (other_tag, name) in languages.items() if code != lang
+    )
+    language_label = t('切换语言', 'Change language')
+    menu = f'<details class="language-menu"><summary aria-label="{language_label} · {native_name}">{native_name}</summary><nav aria-label="{language_label}">{language_links}</nav></details>'
     contact_link = '#wechat-consult' if not slug or slug == 'contact' else path(lang, 'contact')
     brand=f'<a class="brand" href="{home}" aria-label="Waferpath {t("首页","home")}"><i class="mark" aria-hidden="true"></i>Waferpath</a>'
-    alt=''.join(f'<link rel="alternate" hreflang="{c}" href="{canonical_base}{path(l,slug)}">' for c,l in [('zh-Hans','zh'),('en','en'),('x-default','zh')])
+    alt = ''.join(f'<link rel="alternate" hreflang="{language_tag}" href="{canonical_base}{path(code,slug)}">'
+                  for code, (language_tag, _) in languages.items())
+    alt += f'<link rel="alternate" hreflang="x-default" href="{canonical_base}{path("zh",slug)}">'
     canonical_url = canonical_base + url
-    is_article = slug in {item[0] for item in pages[lang]}
+    is_article = slug in {item[0] for item in pages['en']}
     publisher = {'@type': 'Organization', 'name': 'Waferpath', 'alternateName': '芯路', 'url': canonical_base + '/'}
     ld = {
         '@context': 'https://schema.org', '@type': 'Article' if is_article else 'WebPage',
         'name': title, 'description': desc, 'url': canonical_url,
-        'inLanguage': t('zh-Hans', 'en'), 'publisher': publisher,
+        'inLanguage': tag, 'publisher': publisher,
         'isPartOf': {'@type': 'WebSite', 'name': 'Waferpath', 'url': canonical_base + '/'},
     }
     if is_article:
         ld.update(headline=title, author=publisher, mainEntityOfPage=canonical_url)
-    asset(url, f'''<!doctype html><html lang="{t('zh-CN','en')}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(title)} | Waferpath</title><meta name="description" content="{e(desc,quote=True)}"><link rel="canonical" href="{canonical_url}">{alt}<meta property="og:type" content="{'article' if is_article else 'website'}"><meta property="og:title" content="{e(title,quote=True)}"><meta property="og:description" content="{e(desc,quote=True)}"><meta property="og:url" content="{canonical_url}"><meta property="og:image" content="{canonical_base}/wafer-macro.webp"><link rel="stylesheet" href="/style.css?v={style_version}"><link rel="icon" href="/icon.png"><script type="application/ld+json">{json.dumps(ld,ensure_ascii=False)}</script></head><body><a class="skip" href="#content">{t('跳到正文','Skip to content')}</a><header class="top"><div class="wrap">{brand}<nav class="nav"><a href="{path(lang,'companies')}">{t('公司资料','Companies')}</a><a href="{home}#guides">{t('求职指南','Guides')}</a><a href="{home}#questions">{t('常见问题','FAQ')}</a></nav><a class="lang" lang="{other}" href="{path(other,slug)}">{t('English','中文')}</a>{button(contact_link,t('微信咨询','WeChat'))}</div></header><main class="wrap" id="content">{main}</main><footer class="foot"><div class="wrap">{brand}<span>{t('半导体求职与出口许可','Semiconductor careers & export licensing')}</span><a href="{path(lang,'contact')}">{t('联系咨询','Contact')}</a><a href="{canonical_base}/sitemap.xml">{t('站点地图','Sitemap')}</a></div></footer></body></html>''','text/html; charset=utf-8')
-for lang,data in pages.items():
-    zh=lang=='zh';t=lambda a,b:a if zh else b
+    asset(url, f'''<!doctype html>
+<html lang="{'zh-CN' if lang == 'zh' else tag}" dir="{direction}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{e(title)} | Waferpath</title>
+<meta name="description" content="{e(desc,quote=True)}">
+<link rel="canonical" href="{canonical_url}">{alt}<meta property="og:type" content="{'article' if is_article else 'website'}">
+<meta property="og:title" content="{e(title,quote=True)}">
+<meta property="og:description" content="{e(desc,quote=True)}">
+<meta property="og:url" content="{canonical_url}">
+<meta property="og:image" content="{canonical_base}/wafer-macro.webp">
+<link rel="stylesheet" href="/style.css?v={style_version}">
+<link rel="icon" href="/icon.png">
+<script type="application/ld+json">{json.dumps(ld,ensure_ascii=False)}</script>
+</head>
+<body>
+<a class="skip" href="#content">{t('跳到正文','Skip to content')}</a>
+<header class="top">
+<div class="wrap">{brand}<nav class="nav">
+<a href="{path(lang,'companies')}">{t('公司资料','Companies')}</a>
+<a href="{home}#guides">{t('求职指南','Guides')}</a>
+<a href="{home}#questions">{t('常见问题','FAQ')}</a>
+</nav>{menu}{button(contact_link,t('微信咨询','WeChat'))}</div>
+</header>
+<main class="wrap" id="content">{main}</main>
+<footer class="foot">
+<div class="wrap">{brand}<span>{t('半导体求职与出口许可','Semiconductor careers & export licensing')}</span>
+<a href="{path(lang,'contact')}">{t('联系咨询','Contact')}</a>
+<a href="{canonical_base}/sitemap.xml">{t('站点地图','Sitemap')}</a>
+</div>
+</footer>
+</body>
+</html>''','text/html; charset=utf-8')
+for lang in languages:
+    data = guides_for(lang)
+    zh = lang == 'zh'
+    t = partial(translate, lang)
     h=path(lang); contact=path(lang,'contact')
     cards=''
     for slug,title,desc,sections,refs in data:
@@ -109,7 +166,7 @@ for lang,data in pages.items():
         sources=''.join('<li>'+link(u,n)+'</li>' for u,n in refs)
         related = ' · '.join(link(path(lang, other_slug), other_title)
                              for other_slug, other_title, *_ in data if other_slug != slug)
-        art=f'<article class="inner"><a class="crumb" href="{h}#guides">← {t("求职指南","Guides")}</a><h1>{e(title)}</h1><p class="lead">{e(desc)}</p>{parts}{guide_example(lang, slug)}<p class="related-guide">{t("相关指南","Related guide")} · {related}</p><div class="source"><strong>{t("官方资料","Official sources")}</strong><ul>{sources}</ul></div>{button(contact,t("加微信咨询","Ask on WeChat"))}</article>'
+        art=f'<article class="inner"><a class="crumb" href="{h}#guides">← {t("求职指南","Guides")}</a><h1>{e(title)}</h1><p class="lead">{e(desc)}</p>{parts}{guide_example(lang, slug)}<p class="related-guide">{t("相关指南","Related guides")} · {related}</p><div class="source"><strong>{t("官方资料","Official sources")}</strong><ul>{sources}</ul></div>{button(contact,t("加微信咨询","Ask on WeChat"))}</article>'
         make(lang,slug,title,desc,art)
     faqs=[
         (t('中国、俄罗斯或伊朗籍工程师还能在美国芯片公司工作吗？','Can engineers from China, Russia or Iran work for a U.S. chip company?'),t('国籍本身不能决定某个岗位能否入职。雇主要看候选人的身份、实际接触的技术以及适用的管制。美国司法部说明，EAR 和 ITAR 本身没有要求雇主只招聘美国公民。','Nationality alone cannot determine the outcome for a specific role. Employers assess the person’s status, access to technology and applicable controls. The Justice Department explains that the EAR and ITAR do not themselves require employers to hire only U.S. citizens.'),DOJ),

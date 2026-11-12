@@ -112,3 +112,42 @@
 .guide-example blockquote p:last-child { margin-bottom: 0; }
 .related-guide { margin-top: 24px; }
 .related-guide a, .guide-example a { color: var(--teal); }
+
+.language-menu { position: relative; flex: 0 0 auto; }
+.language-menu summary {
+  cursor: pointer;
+  color: var(--ink);
+  padding: 6px 3px;
+  font: 600 14px/1.5 var(--sans);
+}
+.language-menu nav {
+  position: absolute;
+  z-index: 5;
+  inset-inline-end: 0;
+  display: grid;
+  min-width: 132px;
+  padding: 5px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  box-shadow: 0 8px 20px #102c2424;
+}
+.language-menu a { padding: 7px 12px; text-decoration: none; }
+.language-menu a:hover, .language-menu a:focus-visible { background: #eaf0e6; }
+[dir="rtl"] .nav { margin-left: 0; margin-inline-start: auto; }
+[dir="rtl"] .hero::before { background: linear-gradient(270deg, rgba(4,25,26,.95), rgba(4,25,26,.82) 36%, rgba(4,25,26,.15) 70%); }
+[dir="rtl"] .hero h1, [dir="rtl"] h2, [dir="rtl"] .card h3 { letter-spacing: normal; line-height: 1.42; }
+[dir="rtl"] .guides-layout .card { padding-inline: 0 34px; }
+[dir="rtl"] .guides-layout .arr { right: auto; inset-inline-end: 4px; }
+[dir="rtl"] .hero .wechat-panel, [dir="rtl"] .status-note { text-align: start; }
+[dir="rtl"] .status-note { border-left: 0; border-inline-start: 3px solid var(--teal); }
+[dir="rtl"] .source ul { padding-inline-start: 22px; }
+.guide-example blockquote[dir="ltr"] { text-align: left; }
+.foot .wrap { flex-wrap: wrap; }
+@media (max-width: 660px) {
+  .language-menu { margin-inline-start: auto; }
+  [dir="rtl"] .hero::before { background: linear-gradient(270deg, rgba(3,22,24,.92), rgba(3,22,24,.74) 64%, rgba(3,22,24,.35)); }
+  html[lang="ru"] .hero h1 { font-size: clamp(28px, 8vw, 43px); overflow-wrap: break-word; }
+  html[lang="fa"] .hero h1 { font-size: clamp(30px, 8vw, 46px); }
+  .hero .wechat-panel > * { min-width: 0; }
+}
