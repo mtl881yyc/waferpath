@@ -25,6 +25,8 @@ jobs:
         env:
           SITE_URL: ${{ steps.pages.outputs.base_url }}
         run: python3 src/build.py
+      - name: Include Google Search Console ownership verification
+        run: cp googlebf05928d73e4a147.html dist/client/
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist/client
