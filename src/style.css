@@ -101,3 +101,14 @@
   .guide-image { height: auto; aspect-ratio: 2.25; }
   .contact-page .wechat-qr { width: min(100%, 185px); }
 }
+
+.guide-example blockquote {
+  margin: 18px 0 26px;
+  padding: 18px 22px;
+  border-left: 3px solid var(--teal);
+  background: #edf2e8;
+  overflow-wrap: anywhere;
+}
+.guide-example blockquote p:last-child { margin-bottom: 0; }
+.related-guide { margin-top: 24px; }
+.related-guide a, .guide-example a { color: var(--teal); }

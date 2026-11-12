@@ -12,12 +12,14 @@ root=Path(__file__).resolve().parent.parent
 src=root/'src'
 stylesheet = (src / 'style.css').read_text()
 style_version = sha256(stylesheet.encode()).hexdigest()[:12]
-base = os.environ.get('SITE_URL') or json.loads((root/'site.json').read_text())['origin']
+settings = json.loads((root/'site.json').read_text())
+base = os.environ.get('SITE_URL') or settings['origin']
 base = base.rstrip('/')
 parsed = urlsplit(base)
 if parsed.scheme not in ('http', 'https') or not parsed.netloc or parsed.query or parsed.fragment:
     raise ValueError('SITE_URL must be the public site URL, optionally including its project path.')
 prefix = parsed.path
+canonical_base = settings.get('canonical_origin', base).rstrip('/')
 routes={}
 def path(lang,slug=''):
     return ('/' if lang=='zh' else '/en/')+(slug+'/' if slug else '')
@@ -29,6 +31,37 @@ def button(url,label,light=False):
     return f'<a class="button{" light" if light else ""}" href="{url}">{e(label)} <span class="arr" aria-hidden="true">↗</span></a>'
 def link(url,label):
     return f'<a href="{e(url,quote=True)}">{e(label)}</a>'
+
+def guide_example(lang, slug):
+    zh = lang == 'zh'
+    if slug == 'recruiter-questions':
+        heading = '英文进度跟进邮件模板' if zh else 'Email template for an export license status update'
+        note = ('把方括号换成岗位名称和 offer 上的日期。如果招聘方已经确认提交，可删去询问是否提交的那句。'
+                if zh else 'Replace the bracketed details with your role and proposed start date. If recruiting has confirmed filing, omit the question about submission.')
+        return f'''<section class="guide-example"><h2>{heading}</h2><p>{note}</p>
+            <blockquote lang="en"><p><strong>Subject: Export license status and start date for [role]</strong></p>
+            <p>Hi [name],</p><p>I’m looking forward to joining the team as [role]. My offer lists [date] as the proposed start date. Has the export compliance team submitted the license application for this role?</p>
+            <p>If you need any documents from me, please let me know how to send them. If the application is still pending on [date], could we agree on when to revisit the start date?</p>
+            <p>Thank you,<br>[your name]</p></blockquote></section>'''
+    if slug == 'offer-review':
+        amd = next(item[-1] for item in employers if item[0] == 'amd')
+        qualcomm = next(item[-1] for item in employers if item[0] == 'qualcomm')
+        if zh:
+            heading = '怎么读 AMD 的 offer 和 Qualcomm 的实习通知？'
+            examples = [
+                ('AMD 的一份公开 offer 把取得所需许可列为录用条件，并提醒收件人等出口管制流程完成后再辞职。看到类似条款时，可以让招聘方书面确认这项条件何时满足。', amd, 'AMD 公开 offer'),
+                ('Qualcomm 的一则实习招聘通知提醒，需要许可的候选人可能赶不上实习。实习期固定时，可以先问项目最晚接受哪一天报到，再约定在这一天之前何时联系。', qualcomm, 'Qualcomm 实习招聘通知'),
+            ]
+        else:
+            heading = 'Reading an AMD offer and a Qualcomm internship notice'
+            examples = [
+                ('One published AMD offer asks its recipient to wait until the export control process is complete before resigning. If your own offer has a similar condition, ask who will confirm in writing when it has been met.', amd, 'Published AMD offer'),
+                ('A Qualcomm internship notice explains that candidates who need a license could miss the internship if it is delayed. For a fixed program, ask for the last possible start date and agree on a check-in before that date.', qualcomm, 'Qualcomm internship notice'),
+            ]
+        return f'<section class="guide-example"><h2>{heading}</h2>' + ''.join(
+            f'<p>{e(body)} {link(url, label)}</p>' for body, url, label in examples
+        ) + '</section>'
+    return ''
 def wechat_panel(lang):
     if lang == 'zh':
         title = '扫码加微信咨询'
@@ -53,9 +86,19 @@ def make(lang,slug,title,desc,main):
     home=path(lang); other='en' if zh else 'zh'; url=path(lang,slug)
     contact_link = '#wechat-consult' if not slug or slug == 'contact' else path(lang, 'contact')
     brand=f'<a class="brand" href="{home}" aria-label="Waferpath {t("首页","home")}"><i class="mark" aria-hidden="true"></i>Waferpath</a>'
-    alt=''.join(f'<link rel="alternate" hreflang="{c}" href="{base}{path(l,slug)}">' for c,l in [('zh-Hans','zh'),('en','en'),('x-default','en')])
-    ld={'@context':'https://schema.org','@type':'Article' if slug in [p[0] for p in pages[lang]] else 'WebPage','name':title,'description':desc,'url':base+url,'inLanguage':t('zh-Hans','en'),'publisher':{'@type':'Organization','name':'Waferpath','url':base+'/'},'isPartOf':{'@type':'WebSite','name':'Waferpath','url':base+'/'}}
-    asset(url, f'''<!doctype html><html lang="{t('zh-CN','en')}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(title)} | Waferpath</title><meta name="description" content="{e(desc,quote=True)}"><link rel="canonical" href="{base}{url}">{alt}<meta property="og:type" content="website"><meta property="og:title" content="{e(title,quote=True)}"><meta property="og:description" content="{e(desc,quote=True)}"><meta property="og:url" content="{base}{url}"><meta property="og:image" content="{base}/wafer-macro.webp"><link rel="stylesheet" href="/style.css?v={style_version}"><link rel="icon" href="/icon.png"><script type="application/ld+json">{json.dumps(ld,ensure_ascii=False)}</script></head><body><a class="skip" href="#content">{t('跳到正文','Skip to content')}</a><header class="top"><div class="wrap">{brand}<nav class="nav"><a href="{path(lang,'companies')}">{t('公司资料','Companies')}</a><a href="{home}#guides">{t('求职指南','Guides')}</a><a href="{home}#questions">{t('常见问题','FAQ')}</a></nav><a class="lang" lang="{other}" href="{path(other,slug)}">{t('English','中文')}</a>{button(contact_link,t('微信咨询','WeChat'))}</div></header><main class="wrap" id="content">{main}</main><footer class="foot"><div class="wrap">{brand}<span>{t('半导体求职与出口许可','Semiconductor careers & export licensing')}</span><a href="{path(lang,'contact')}">{t('联系咨询','Contact')}</a></div></footer></body></html>''','text/html; charset=utf-8')
+    alt=''.join(f'<link rel="alternate" hreflang="{c}" href="{canonical_base}{path(l,slug)}">' for c,l in [('zh-Hans','zh'),('en','en'),('x-default','zh')])
+    canonical_url = canonical_base + url
+    is_article = slug in {item[0] for item in pages[lang]}
+    publisher = {'@type': 'Organization', 'name': 'Waferpath', 'alternateName': '芯路', 'url': canonical_base + '/'}
+    ld = {
+        '@context': 'https://schema.org', '@type': 'Article' if is_article else 'WebPage',
+        'name': title, 'description': desc, 'url': canonical_url,
+        'inLanguage': t('zh-Hans', 'en'), 'publisher': publisher,
+        'isPartOf': {'@type': 'WebSite', 'name': 'Waferpath', 'url': canonical_base + '/'},
+    }
+    if is_article:
+        ld.update(headline=title, author=publisher, mainEntityOfPage=canonical_url)
+    asset(url, f'''<!doctype html><html lang="{t('zh-CN','en')}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(title)} | Waferpath</title><meta name="description" content="{e(desc,quote=True)}"><link rel="canonical" href="{canonical_url}">{alt}<meta property="og:type" content="{'article' if is_article else 'website'}"><meta property="og:title" content="{e(title,quote=True)}"><meta property="og:description" content="{e(desc,quote=True)}"><meta property="og:url" content="{canonical_url}"><meta property="og:image" content="{canonical_base}/wafer-macro.webp"><link rel="stylesheet" href="/style.css?v={style_version}"><link rel="icon" href="/icon.png"><script type="application/ld+json">{json.dumps(ld,ensure_ascii=False)}</script></head><body><a class="skip" href="#content">{t('跳到正文','Skip to content')}</a><header class="top"><div class="wrap">{brand}<nav class="nav"><a href="{path(lang,'companies')}">{t('公司资料','Companies')}</a><a href="{home}#guides">{t('求职指南','Guides')}</a><a href="{home}#questions">{t('常见问题','FAQ')}</a></nav><a class="lang" lang="{other}" href="{path(other,slug)}">{t('English','中文')}</a>{button(contact_link,t('微信咨询','WeChat'))}</div></header><main class="wrap" id="content">{main}</main><footer class="foot"><div class="wrap">{brand}<span>{t('半导体求职与出口许可','Semiconductor careers & export licensing')}</span><a href="{path(lang,'contact')}">{t('联系咨询','Contact')}</a><a href="{canonical_base}/sitemap.xml">{t('站点地图','Sitemap')}</a></div></footer></body></html>''','text/html; charset=utf-8')
 for lang,data in pages.items():
     zh=lang=='zh';t=lambda a,b:a if zh else b
     h=path(lang); contact=path(lang,'contact')
@@ -64,15 +107,17 @@ for lang,data in pages.items():
         cards+=f'<a class="card" href="{path(lang,slug)}"><span class="arr" aria-hidden="true">↗</span><h3>{e(title)}</h3><p>{e(desc)}</p></a>'
         parts=''.join(f'<h2>{e(k)}</h2><p>{e(v)}</p>' for k,v in sections)
         sources=''.join('<li>'+link(u,n)+'</li>' for u,n in refs)
-        art=f'<article class="inner"><a class="crumb" href="{h}#guides">← {t("求职指南","Guides")}</a><h1>{e(title)}</h1><p class="lead">{e(desc)}</p>{parts}<div class="source"><strong>{t("官方资料","Official sources")}</strong><ul>{sources}</ul></div>{button(contact,t("加微信咨询","Ask on WeChat"))}</article>'
-        make(lang,slug,title+t(' · 半导体求职',' · Semiconductor careers'),desc,art)
+        related = ' · '.join(link(path(lang, other_slug), other_title)
+                             for other_slug, other_title, *_ in data if other_slug != slug)
+        art=f'<article class="inner"><a class="crumb" href="{h}#guides">← {t("求职指南","Guides")}</a><h1>{e(title)}</h1><p class="lead">{e(desc)}</p>{parts}{guide_example(lang, slug)}<p class="related-guide">{t("相关指南","Related guide")} · {related}</p><div class="source"><strong>{t("官方资料","Official sources")}</strong><ul>{sources}</ul></div>{button(contact,t("加微信咨询","Ask on WeChat"))}</article>'
+        make(lang,slug,title,desc,art)
     faqs=[
         (t('中国、俄罗斯或伊朗籍工程师还能在美国芯片公司工作吗？','Can engineers from China, Russia or Iran work for a U.S. chip company?'),t('国籍本身不能决定某个岗位能否入职。雇主要看候选人的身份、实际接触的技术以及适用的管制。美国司法部说明，EAR 和 ITAR 本身没有要求雇主只招聘美国公民。','Nationality alone cannot determine the outcome for a specific role. Employers assess the person’s status, access to technology and applicable controls. The Justice Department explains that the EAR and ITAR do not themselves require employers to hire only U.S. citizens.'),DOJ),
         (t('工作许可和出口许可是同一件事吗？','How does work authorization differ from export authorization?'),t('工作许可关系到你能否在美国受雇。出口许可关系到雇主能否向你开放特定受控技术。一个岗位可能需要分别核实这两项条件。','Work authorization concerns your eligibility to work in the U.S. Export authorization concerns the employer’s ability to release particular controlled technology to you. A role may require both assessments.'),DOJ),
     ]
     faq=''.join(f'<details><summary>{e(q)}</summary><p>{e(a)} {link(u,t("官方依据","Official source"))}</p></details>' for q,a,u in faqs)
     directory=path(lang,'companies')
-    directory_title=t('芯片公司的 EL 条款','Semiconductor employers and export licensing')
+    directory_title=t('芯片公司的出口许可（EL）条款','Semiconductor employers and export licensing')
     intro=t('芯片公司公开文件里，哪些岗位提到了出口许可？下列资料覆盖芯片设计、晶圆制造与设备。具体岗位是否需要 EL，取决于技术范围和候选人身份。','Explore hiring notices and disclosures from chip designers, foundries and equipment makers. License requirements depend on the role, the technology and the candidate’s status.')
     survey='https://www.csis.org/analysis/delays-and-uncertainty-export-licensing-process-findings-csis-survey-us-technology'
     tiles=[]; records=[]
@@ -83,7 +128,9 @@ for lang,data in pages.items():
         records.append(f'<section class="record" id="{key}">{logo}<div><h2>{e(label)}</h2><p>{e(t(summary_zh,summary_en))}</p>{link(source,t("查看公开文件","Read source"))}</div></section>')
     grid=''.join(tiles)
     independent=t('公司名称和商标用于识别文件发布方。芯路独立整理。','Company names and marks identify the organizations discussed. This directory is independently compiled by Waferpath.')
-    make(lang,'companies',directory_title,intro,f'<article class="inner"><a class="crumb" href="{h}">← {t("首页","Home")}</a><h1>{directory_title}</h1><p class="lead">{intro}</p>{"".join(records)}<p class="note">{independent}</p></article>')
+    directory_search_title = t('AMD、Intel、Qualcomm 等芯片公司的出口许可（EL）条款',
+                               'Export license terms at AMD, Intel, Qualcomm and other chip companies')
+    make(lang,'companies',directory_search_title,intro,f'<article class="inner"><a class="crumb" href="{h}">← {t("首页","Home")}</a><h1>{directory_title}</h1><p class="lead">{intro}</p>{"".join(records)}<p class="note">{independent}</p></article>')
     main=f'''<section class="hero">
         <img class="hero-image" src="/wafer-macro.webp" width="1728" height="576" fetchpriority="high" alt="">
         <div class="hero-heading"><div class="topic">{t('半导体求职与出口许可','U.S. semiconductor career support')}</div>
@@ -109,8 +156,8 @@ for lang,data in pages.items():
         </article>'''
     make(lang, 'contact', contact_title, contact_desc, contact_page)
 urls=[u for u,v in routes.items() if v[0].startswith('text/html')]
-asset('/robots.txt','User-agent: *\nAllow: /\nSitemap: '+base+'/sitemap.xml\n','text/plain')
-asset('/sitemap.xml','<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>'+e(base+p)+'</loc></url>' for p in urls)+'</urlset>','application/xml')
+asset('/robots.txt','User-agent: *\nAllow: /\nSitemap: '+canonical_base+'/sitemap.xml\n','text/plain')
+asset('/sitemap.xml','<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+''.join('<url><loc>'+e(canonical_base+p)+'</loc></url>' for p in urls)+'</urlset>','application/xml')
 asset('/style.css',stylesheet,'text/css')
 destination = root / 'dist' / 'client'
 # Rebuild the generated directory so retired pages are removed from deployments.
