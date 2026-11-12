@@ -26,6 +26,26 @@ def button(url,label,light=False):
     return f'<a class="button{" light" if light else ""}" href="{url}">{e(label)} <span class="arr" aria-hidden="true">↗</span></a>'
 def link(url,label):
     return f'<a href="{e(url,quote=True)}">{e(label)}</a>'
+def wechat_panel(lang):
+    if lang == 'zh':
+        title = '扫码添加 Cecilia Y.'
+        intro = '想问美国 Export License 申请进度、补材料或入职延期？加微信时可以说说你申请的岗位，以及招聘方最近一次怎么回复。'
+        instructions = '用微信「扫一扫」扫描二维码。用手机浏览时，可以先保存二维码，再在微信「扫一扫」里从相册选取。'
+        download = '保存二维码'
+        alt = '添加 Cecilia Y. 为微信好友的二维码'
+    else:
+        title = 'Add Cecilia Y. on WeChat'
+        intro = 'Have a question about a U.S. export license application, a document request or a delayed start date? Mention the role and the latest update from your recruiter.'
+        instructions = 'Scan the code with WeChat. On your phone, save the QR code, open Scan in WeChat and select it from your photos.'
+        download = 'Save QR code'
+        alt = 'WeChat QR code for adding Cecilia Y. as a contact'
+    return f'''<section class="wechat-panel" id="wechat-consult" aria-labelledby="wechat-title">
+        <img class="wechat-qr" src="/cecilia-wechat.png" width="516" height="516" alt="{e(alt)}">
+        <div><h2 id="wechat-title">{e(title)}</h2><p>{e(intro)}</p>
+        <p class="scan-help">{e(instructions)}</p>
+        <a class="button" href="/cecilia-wechat.png" download="Cecilia-WeChat.png">{e(download)} <span aria-hidden="true">↓</span></a></div>
+        </section>'''
+
 def make(lang,slug,title,desc,main):
     zh=lang=='zh'
     t=lambda a,b:a if zh else b
@@ -33,7 +53,7 @@ def make(lang,slug,title,desc,main):
     brand=f'<a class="brand" href="{home}" aria-label="Waferpath {t("首页","home")}"><i class="mark" aria-hidden="true"></i>Waferpath</a>'
     alt=''.join(f'<link rel="alternate" hreflang="{c}" href="{base}{path(l,slug)}">' for c,l in [('zh-Hans','zh'),('en','en'),('x-default','en')])
     ld={'@context':'https://schema.org','@type':'Article' if slug in [p[0] for p in pages[lang]] else 'WebPage','name':title,'description':desc,'url':base+url,'inLanguage':t('zh-Hans','en'),'publisher':{'@type':'Organization','name':'Waferpath','url':base+'/'},'isPartOf':{'@type':'WebSite','name':'Waferpath','url':base+'/'}}
-    asset(url, f'''<!doctype html><html lang="{t('zh-CN','en')}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(title)} | Waferpath</title><meta name="description" content="{e(desc,quote=True)}"><link rel="canonical" href="{base}{url}">{alt}<meta property="og:type" content="website"><meta property="og:title" content="{e(title,quote=True)}"><meta property="og:description" content="{e(desc,quote=True)}"><meta property="og:url" content="{base}{url}"><meta property="og:image" content="{base}/wafer.webp"><link rel="stylesheet" href="/style.css"><link rel="icon" href="/icon.png"><script type="application/ld+json">{json.dumps(ld,ensure_ascii=False)}</script></head><body><a class="skip" href="#content">{t('跳到正文','Skip to content')}</a><header class="top"><div class="wrap">{brand}<nav class="nav"><a href="{path(lang,'companies')}">{t('公司资料','Companies')}</a><a href="{home}#guides">{t('求职指南','Guides')}</a><a href="{home}#questions">{t('常见问题','FAQ')}</a></nav><a class="lang" lang="{other}" href="{path(other,slug)}">{t('English','中文')}</a>{button(path(lang,'contact'),t('咨询','Contact'))}</div></header><main class="wrap" id="content">{main}</main><footer class="foot"><div class="wrap">{brand}<span>{t('半导体求职与出口许可','Semiconductor careers & export licensing')}</span><a href="{path(lang,'contact')}">{t('联系咨询','Contact')}</a></div></footer></body></html>''','text/html; charset=utf-8')
+    asset(url, f'''<!doctype html><html lang="{t('zh-CN','en')}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(title)} | Waferpath</title><meta name="description" content="{e(desc,quote=True)}"><link rel="canonical" href="{base}{url}">{alt}<meta property="og:type" content="website"><meta property="og:title" content="{e(title,quote=True)}"><meta property="og:description" content="{e(desc,quote=True)}"><meta property="og:url" content="{base}{url}"><meta property="og:image" content="{base}/wafer.webp"><link rel="stylesheet" href="/style.css"><link rel="icon" href="/icon.png"><script type="application/ld+json">{json.dumps(ld,ensure_ascii=False)}</script></head><body><a class="skip" href="#content">{t('跳到正文','Skip to content')}</a><header class="top"><div class="wrap">{brand}<nav class="nav"><a href="{path(lang,'companies')}">{t('公司资料','Companies')}</a><a href="{home}#guides">{t('求职指南','Guides')}</a><a href="{home}#questions">{t('常见问题','FAQ')}</a></nav><a class="lang" lang="{other}" href="{path(other,slug)}">{t('English','中文')}</a>{button(path(lang,'contact'),t('微信咨询','WeChat'))}</div></header><main class="wrap" id="content">{main}</main><footer class="foot"><div class="wrap">{brand}<span>{t('半导体求职与出口许可','Semiconductor careers & export licensing')}</span><a href="{path(lang,'contact')}">{t('联系咨询','Contact')}</a></div></footer></body></html>''','text/html; charset=utf-8')
 for lang,data in pages.items():
     zh=lang=='zh';t=lambda a,b:a if zh else b
     h=path(lang); contact=path(lang,'contact')
@@ -42,7 +62,7 @@ for lang,data in pages.items():
         cards+=f'<a class="card" href="{path(lang,slug)}"><div class="cardhead"><span class="icon" aria-hidden="true">{icons[i]}</span><span class="arr" aria-hidden="true">↗</span></div><h3>{e(title)}</h3><p>{e(desc)}</p></a>'
         parts=''.join(f'<h2>{e(k)}</h2><p>{e(v)}</p>' for k,v in sections)
         sources=''.join('<li>'+link(u,n)+'</li>' for u,n in refs)
-        art=f'<article class="inner"><a class="crumb" href="{h}#guides">← {t("求职指南","Guides")}</a><h1>{e(title)}</h1><p class="lead">{e(desc)}</p>{parts}<div class="source"><strong>{t("官方资料","Official sources")}</strong><ul>{sources}</ul></div>{button(contact,t("咨询这个问题","Discuss this question"))}</article>'
+        art=f'<article class="inner"><a class="crumb" href="{h}#guides">← {t("求职指南","Guides")}</a><h1>{e(title)}</h1><p class="lead">{e(desc)}</p>{parts}<div class="source"><strong>{t("官方资料","Official sources")}</strong><ul>{sources}</ul></div>{button(contact,t("加微信咨询","Ask on WeChat"))}</article>'
         make(lang,slug,title+t(' · 半导体求职',' · Semiconductor careers'),desc,art)
     faqs=[
         (t('中国、俄罗斯或伊朗籍工程师还能在美国芯片公司工作吗？','Can engineers from China, Russia or Iran work for a U.S. chip company?'),t('国籍本身不能决定某个岗位能否入职。雇主要看候选人的身份、实际接触的技术以及适用的管制。美国司法部说明，EAR 和 ITAR 本身没有要求雇主只招聘美国公民。','Nationality alone cannot determine the outcome for a specific role. Employers assess the person’s status, access to technology and applicable controls. The Justice Department explains that the EAR and ITAR do not themselves require employers to hire only U.S. citizens.'),DOJ),
@@ -62,22 +82,20 @@ for lang,data in pages.items():
     grid=''.join(tiles)
     independent=t('公司名称和商标用于识别文件发布方。芯路独立整理。','Company names and marks identify the organizations discussed. This directory is independently compiled by Waferpath.')
     make(lang,'companies',directory_title,intro,f'<article class="inner"><a class="crumb" href="{h}">← {t("首页","Home")}</a><h1>{directory_title}</h1><p class="lead">{intro}</p>{"".join(records)}<p class="note">{independent}</p></article>')
-    main=f'''<section class="hero"><div><div class="topic">{t('半导体求职与出口许可','U.S. semiconductor career support')}</div><h1>{t('美国 Export License','U.S. export license')}<span>{t('申请卡住了？','application stalled?')}</span></h1><p>{t('拿到芯片公司的 offer，出口许可（EL）却迟迟没有结果？芯路帮你整理材料、向招聘方询问申请进度，谈清入职安排。','A semiconductor offer in hand, but no decision on your export license? Get help asking your employer for a status update, preparing documents and discussing your start date.')}</p><div class="actions">{button(contact,t('咨询我的情况','Discuss my situation'))}<a class="textlink" href="#guides">{t('阅读求职指南','Explore the guides')} ↓</a></div></div><figure class="plate"><img src="/wafer.webp" width="1280" height="920" fetchpriority="high" alt="{t('斜视硅晶圆示意图，表面排列着重复的芯片单元','Illustrated silicon wafer with a repeating grid of chip dies')}"><figcaption><span>{t('硅晶圆','SILICON WAFER')} &nbsp; / &nbsp; {t('芯片阵列示意','DIE ARRAY STUDY')}</span><span class="chips" aria-hidden="true"><b></b><b></b><b></b><b></b></span></figcaption></figure></section>
+    main=f'''<section class="hero"><div><div class="topic">{t('半导体求职与出口许可','U.S. semiconductor career support')}</div><h1>{t('美国 Export License','U.S. export license')}<span>{t('申请卡住了？','application stalled?')}</span></h1><p>{t('拿到芯片公司的 offer，出口许可（EL）却迟迟没有结果？芯路帮你整理材料、向招聘方询问申请进度，谈清入职安排。','A semiconductor offer in hand, but no decision on your export license? Get help asking your employer for a status update, preparing documents and discussing your start date.')}</p><div class="actions">{button('#wechat-consult',t('加微信咨询 Export License','Ask about an export license on WeChat'))}<a class="textlink" href="#guides">{t('阅读求职指南','Explore the guides')} ↓</a></div></div><figure class="plate"><img src="/wafer.webp" width="1280" height="920" fetchpriority="high" alt="{t('斜视硅晶圆示意图，表面排列着重复的芯片单元','Illustrated silicon wafer with a repeating grid of chip dies')}"><figcaption><span>{t('硅晶圆','SILICON WAFER')} &nbsp; / &nbsp; {t('芯片阵列示意','DIE ARRAY STUDY')}</span><span class="chips" aria-hidden="true"><b></b><b></b><b></b><b></b></span></figcaption></figure></section>
     <section class="status-note" aria-labelledby="delays"><h2 id="delays">{t('2025 年后，在美国的工程师申请 Export License 基本批不下来了吗？','Have U.S. export licenses for engineers become nearly impossible to obtain since 2025?')}</h2><p>{t('高通在美国工程实习生招聘启事中明确提醒：如果岗位需要 EL，申请延误可能让你赶不上入职。2026 年 4 月，CSIS 调查中的受访企业也提到，视同出口申请等待时间尤其长。这些资料说明等待确实会影响工作机会，但没有给出美国芯片工程师的整体获批率。','Qualcomm warns engineering interns who need a license that delays may prevent them from starting on time. Respondents to an April 2026 CSIS survey also reported especially long waits for deemed exports. Neither source reports an overall approval rate for semiconductor engineers in the United States.')} {link(employers[0][-1],t('高通招聘启事','Qualcomm’s notice'))} · {link(survey,t('CSIS 调查','CSIS survey'))}</p></section>
     <section class="section" id="companies"><div class="head"><h2>{directory_title}</h2><a class="textlink" href="{directory}">{t('查看文件与岗位说明','Explore sources and roles')} →</a></div><p class="directory-intro">{intro}</p><div class="issuers">{grid}</div><p class="note issuer-note">{independent}</p></section>
     <section id="guides" class="section"><div class="head"><h2>{t('求职指南','Career guides')}</h2><p>{t('按你当前遇到的问题查阅','Start with the question in front of you.')}</p></div><div class="cards">{cards}</div></section>
     <section id="questions" class="section faq"><h2>{t('常见问题','Common questions')}</h2><div>{faq}</div></section>
-    <section class="cta"><div><h2>{t('把你的情况说清楚','Talk through your offer')}</h2><p>{t('告诉我岗位方向和 EL 申请进度，一起整理要问雇主的问题。','Share the role and the stage of your application. We can work through what to ask your employer.')}</p></div>{button(contact,t('联系芯路','Contact Waferpath'),True)}</section>'''
+    {wechat_panel(lang)}'''
     make(lang,'',t('美国 Export License 申请卡住了？芯片工程师 EL 申请延期咨询','Stalled U.S. export license applications for semiconductor engineers'),t('为美国 Export License 申请卡住、入职延期的芯片工程师提供沟通支持。了解视同出口、加拿大 PR、美国绿卡及 offer 入职条件。','Guidance for semiconductor candidates facing delays in U.S. deemed export licensing, conditional offers, Canadian PR and start dates.'),main)
-    contact_title = t('通过微信联系芯路', 'Contact Waferpath on WeChat')
-    contact_desc = t('在微信添加 weixin，聊聊你的岗位、EL 申请进度和预计入职时间。',
-                     'Add weixin on WeChat to discuss your role, export license timeline and expected start date.')
-    contact_page = f'''<article class="inner">
+    contact_title = t('美国 Export License 微信咨询', 'U.S. export license questions')
+    contact_desc = t('扫码添加 Cecilia Y. 的微信，咨询美国芯片岗位的 Export License 申请、补充材料和入职延期。',
+                     'Scan to add Cecilia Y. on WeChat for questions about U.S. semiconductor job offers, export license applications and start dates.')
+    contact_page = f'''<article class="inner contact-page">
         <a class="crumb" href="{h}">← {t('首页','Home')}</a>
         <h1>{contact_title}</h1>
-        <p class="lead">{t('添加微信时，可以简单说说你的岗位方向和目前的申请进度。','When you get in touch, mention your role and where your application stands.')}</p>
-        <div class="wechat"><p><strong>{t("微信号","WeChat ID")}</strong> <code dir="ltr">weixin</code></p>
-        <small>{t('打开微信，点「添加朋友」，搜索此微信号。','In WeChat, open Add Contacts and search for this ID.')}</small></div>
+        {wechat_panel(lang)}
         </article>'''
     make(lang, 'contact', contact_title, contact_desc, contact_page)
 urls=[u for u,v in routes.items() if v[0].startswith('text/html')]
@@ -92,7 +110,7 @@ for route, (mime, body) in routes.items():
         target = target / 'index.html'
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(body, encoding='utf-8')
-for image in ('wafer.webp', 'icon.png'):
+for image in ('wafer.webp', 'icon.png', 'cecilia-wechat.png'):
     copy2(src / 'assets' / image, destination / image)
 copytree(src / 'assets' / 'logos', destination / 'logos', dirs_exist_ok=True)
 (destination / '.nojekyll').touch()
